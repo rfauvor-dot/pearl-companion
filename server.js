@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Read from environment variables OR use hardcoded fallback
-const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY || 'sk_50b038fbd937872b9fcde55c9e2d43201ea877456de93ea7';
+const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY ||const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY || 'sk_bbb62f6c22eaaac24f4914a75c78a430ff2bb31b92d4c0d5'; 'sk_50b038fbd937872b9fcde55c9e2d43201ea877456de93ea7';
 const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY || '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';
 const VOICE_ID = process.env.VOICE_ID || 'IF80qTXCV4IDY5D4masP';
 
