@@ -37,38 +37,21 @@ app.post('/api/chat', function(req, res) {
   r.end();
 });
 
-app.post('/api/speak', function(req, res) {
-  var text = req.body.text;
-  var body = JSON.stringify({
-    text: text,
-    model_id: 'eleven_multilingual_v2',
-    voice_settings: { stability: 0.5, similarity_boost: 0.85 }
-  });
-  var options = {
-    hostname: 'api.elevenlabs.io',
-    path: '/v1/text-to-speech/' + VOICE_ID,
-    method: 'POST',
-    headers: {
-      'xi-api-key': ELEVENLABS_KEY,
-      'Content-Type': 'application/json',
-      'Accept': 'audio/mpeg',
-      'Content-Length': Buffer.byteLength(body)
-    }
-  };
-  var r = https.request(options, function(response) {
-    console.log('ElevenLabs status:', response.statusCode);
-    if (response.statusCode === 200) {
-      res.setHeader('Content-Type', 'audio/mpeg');
-      response.pipe(res);
-    } else {
-      var d = '';
-      response.on('data', function(c) { d += c; });
-      response.on('end', function() { res.status(response.statusCode).send(d); });
-    }
-  });
-  r.on('error', function(e) { res.status(500).json({ error: e.message }); });
-  r.write(body);
-  r.end();
+app.post('/api/speak', async function(req, res) {
+  try {
+    const { ElevenLabsClient } = require('@elevenlabs/elevenlabs-js');
+    const client = new ElevenLabsClient({ apiKey: ELEVENLABS_KEY });
+    const audio = await client.textToSpeech.convert(VOICE_ID, {
+      text: req.body.text,
+      model_id: 'eleven_multilingual_v2',
+      voice_settings: { stability: 0.5, similarity_boost: 0.85 }
+    });
+    res.setHeader('Content-Type', 'audio/mpeg');
+    audio.pipe(res);
+  } catch(e) {
+    console.error('ElevenLabs SDK error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get('*', function(req, res) {
