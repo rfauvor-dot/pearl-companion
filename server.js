@@ -46,10 +46,16 @@ app.post('/api/speak', async function(req, res) {
       voice_settings: { stability: 0.5, similarity_boost: 0.85 }
     });
     res.setHeader('Content-Type', 'audio/mpeg');
-    audio.pipe(res);
+    const chunks = [];
+    for await (const chunk of audio) {
+      chunks.push(chunk);
+    }
+    res.send(Buffer.concat(chunks));
   } catch(e) {
     console.error('ElevenLabs SDK error:', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
   }
 });
 
