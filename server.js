@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-const ELEVENLABS_KEY = 'sk_bbb62f6c22eaaac24f4914a75c78a430ff2bb31b92d4c0d5';
+const ELEVENLABS_KEY = 'sk_2fefbd1ee01a26b4ff836ab433e76d598376bfdd8028f0a2';
 const ANTHROPIC_KEY = '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';
 const VOICE_ID = 'IF80qTXCV4IDY5D4masP';
 
