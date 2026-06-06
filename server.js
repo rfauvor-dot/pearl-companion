@@ -3,8 +3,8 @@ const path = require('path');
 const https = require('https');
 const app = express();
 
-app.use(express.json());
-app.use(express.static('public'));
+const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY;
+const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;;
 'EXAVITQu4vr4xnSDxMaL';
 const ELEVENLABS_KEY = 'sk_2fefbd1ee01a26b4ff836ab433e76d598376bfdd8028f0a2';
 const ANTHROPIC_KEY = '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';
