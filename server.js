@@ -2,12 +2,12 @@ const express = require('express');
 const path = require('path');
 const https = require('https');
 const app = express();
+app.use(express.json());
+app.use(express.static('public'));
 
 const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY;
-const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;;
-
+const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
-
 
 app.get('/api/health', function(req, res) {
   res.json({ status: 'ok', voice: VOICE_ID });
@@ -38,10 +38,14 @@ app.post('/api/chat', function(req, res) {
 
 app.post('/api/speak', async function(req, res) {
   try {
+    const text = req.body && req.body.text;
+    if (!text) {
+      return res.status(400).json({ error: 'No text provided' });
+    }
     const { ElevenLabsClient } = require('@elevenlabs/elevenlabs-js');
     const client = new ElevenLabsClient({ apiKey: ELEVENLABS_KEY });
     const audio = await client.textToSpeech.convert(VOICE_ID, {
-      text: req.body.text,
+      text: text,
       model_id: 'eleven_multilingual_v2',
       voice_settings: { stability: 0.5, similarity_boost: 0.85 }
     });
@@ -54,8 +58,6 @@ app.post('/api/speak', async function(req, res) {
   } catch(e) {
     console.error('ElevenLabs SDK error:', e.message);
     res.status(500).json({ error: e.message });
-  }
-});
   }
 });
 
