@@ -5,8 +5,7 @@ const app = express();
 
 const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;;
-const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY;
-const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;
+
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 const VOICE_ID = 'IF80qTXCV4IDY5D4masP';
 
