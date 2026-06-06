@@ -6,12 +6,20 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-const ELEVENLABS_KEY = 'sk_50b038fbd937872b9fcde55c9e2d43201ea877456de93ea7';
-const ANTHROPIC_KEY = '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';
-const VOICE_ID = 'IF80qTXCV4IDY5D4masP';
+// Read from environment variables OR use hardcoded fallback
+const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY || 'sk_50b038fbd937872b9fcde55c9e2d43201ea877456de93ea7';
+const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY || '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';
+const VOICE_ID = process.env.VOICE_ID || 'IF80qTXCV4IDY5D4masP';
 
+console.log('Starting Pearl server...');
+console.log('ElevenLabs key present:', !!ELEVENLABS_KEY);
+console.log('Anthropic key present:', !!ANTHROPIC_KEY);
+console.log('Voice ID:', VOICE_ID);
+
+// Claude API proxy
 app.post('/api/chat', async (req, res) => {
   try {
+    console.log('Chat request received');
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -22,16 +30,26 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify(req.body)
     });
     const data = await response.json();
+    console.log('Chat response status:', response.status);
     res.json(data);
   } catch(e) {
+    console.error('Chat error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
+// ElevenLabs voice proxy
 app.post('/api/speak', async (req, res) => {
   try {
     const { text } = req.body;
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream`, {
+    console.log('Speak request for text length:', text?.length);
+    console.log('Using voice ID:', VOICE_ID);
+    console.log('Using ElevenLabs key:', ELEVENLABS_KEY?.substring(0, 10) + '...');
+
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
+    console.log('Calling ElevenLabs URL:', url);
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'xi-api-key': ELEVENLABS_KEY,
@@ -50,14 +68,23 @@ app.post('/api/speak', async (req, res) => {
       })
     });
 
+    console.log('ElevenLabs response status:', response.status);
+
     if (!response.ok) {
       const err = await response.text();
-      return res.status(response.status).json({ error: err });
+      console.error('ElevenLabs error body:', err);
+      return res.status(response.status).send(err);
     }
 
+    const buffer = await response.buffer();
+    console.log('Audio buffer size:', buffer.length);
+
     res.setHeader('Content-Type', 'audio/mpeg');
-    response.body.pipe(res);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+
   } catch(e) {
+    console.error('Speak error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
