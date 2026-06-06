@@ -5,9 +5,9 @@ const app = express();
 
 const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;;
-'EXAVITQu4vr4xnSDxMaL';
-const ELEVENLABS_KEY = 'sk_2fefbd1ee01a26b4ff836ab433e76d598376bfdd8028f0a2';
-const ANTHROPIC_KEY = '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';
+const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY;
+const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;
+const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 const VOICE_ID = 'IF80qTXCV4IDY5D4masP';
 
 app.get('/api/health', function(req, res) {
