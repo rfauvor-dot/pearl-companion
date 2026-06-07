@@ -17,8 +17,8 @@ app.get('/api/health', (req, res) => {
 // Get LiveAvatar session token
 app.post('/api/session', (req, res) => {
   const body = JSON.stringify({
-    avatarId: AVATAR_ID,
-    version: 'v2'
+ avatar_id: AVATAR_ID,
+    mode: 'LITE'
 });
   const options = {
     hostname: 'api.liveavatar.com',
