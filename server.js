@@ -19,7 +19,7 @@ app.post('/api/session', (req, res) => {
   const body = JSON.stringify({
     avatarId: AVATAR_ID,
     version: 'v2'
-  });
+});
   const options = {
     hostname: 'api.liveavatar.com',
   path: '/v1/sessions/token',
