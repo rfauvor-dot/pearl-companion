@@ -794,7 +794,7 @@ async function askClaude(userText) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-20claude-sonnet-4-5250514',
         max_tokens: 1000,
         system: SYSTEM_PROMPT(userName) + emotionNote,
         messages: apiMessages
