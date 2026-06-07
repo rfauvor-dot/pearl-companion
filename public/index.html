@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pearl – Your Personal Companion</title>
-<script src="https://cdn.jsdelivr.net/npm/@heygen/liveavatar-web-sdk/dist/index.umd.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -17,18 +16,8 @@
     justify-content: center;
     padding: 20px;
   }
-  h1 {
-    font-size: 2rem;
-    color: #3a2e24;
-    margin-bottom: 4px;
-    letter-spacing: 1px;
-  }
-  .tagline {
-    color: #7a6248;
-    font-style: italic;
-    margin-bottom: 24px;
-    font-size: 1rem;
-  }
+  h1 { font-size: 2rem; color: #3a2e24; margin-bottom: 4px; }
+  .tagline { color: #7a6248; font-style: italic; margin-bottom: 24px; }
   #avatar-container {
     width: 480px;
     height: 360px;
@@ -40,46 +29,26 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  #avatar-container video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  #status {
-    color: #7a6248;
+    color: #888;
     font-style: italic;
-    margin-bottom: 16px;
-    min-height: 24px;
   }
-  .controls {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
+  #avatar-container video { width: 100%; height: 100%; object-fit: cover; }
+  #status { color: #7a6248; font-style: italic; margin-bottom: 16px; min-height: 24px; }
+  .controls { display: flex; gap: 12px; margin-bottom: 20px; }
   button {
     padding: 12px 28px;
     border: none;
     border-radius: 50px;
     font-size: 1rem;
     cursor: pointer;
-    transition: all 0.2s;
   }
-  #start-btn {
-    background: #c9897a;
-    color: white;
-  }
-  #start-btn:hover { background: #b07060; }
-  #mic-btn {
-    background: #7a6248;
-    color: white;
-    display: none;
-  }
-  #mic-btn:hover { background: #5a4230; }
+  #start-btn { background: #c9897a; color: white; }
+  #start-btn:disabled { background: #ccc; }
+  #mic-btn { background: #7a6248; color: white; display: none; }
   #mic-btn.listening { background: #a05050; }
   .chat-box {
     width: 480px;
-    max-height: 200px;
+    max-height: 180px;
     overflow-y: auto;
     background: rgba(255,255,255,0.6);
     border-radius: 12px;
@@ -90,35 +59,28 @@
   }
   .msg { margin-bottom: 8px; }
   .msg.user { color: #7a6248; font-weight: bold; }
-  .msg.pearl { color: #3a2e24; }
 </style>
 </head>
 <body>
 
 <h1>Pearl</h1>
 <p class="tagline">Always here. Always listening.</p>
-
-<div id="avatar-container">
-  <div id="status">Click "Meet Pearl" to begin</div>
-</div>
+<div id="avatar-container">Click "Meet Pearl" to begin</div>
+<div id="status"></div>
 
 <div class="controls">
   <button id="start-btn" onclick="startSession()">Meet Pearl</button>
-  <button id="mic-btn" onclick="toggleMic()">🎤 Speak</button>
+  <button id="mic-btn" id="mic-btn" onclick="toggleMic()">🎤 Speak</button>
 </div>
 
 <div class="chat-box" id="chat-box"></div>
 
-<script>
-let avatar = null;
-let mediaRecorder = null;
-let audioChunks = [];
-let listening = false;
+<script type="module">
+import { LiveAvatarSession } from 'https://esm.sh/@heygen/liveavatar-web-sdk';
 
-const SYSTEM_PROMPT = `You are Pearl, a warm and caring AI companion designed for adults over 60. 
-You speak slowly, clearly, and with genuine warmth. You remember what people tell you and always 
-make them feel heard and valued. You never use technical jargon. Keep responses conversational 
-and under 3 sentences unless asked for more. You are patient, kind, and never rush anyone.`;
+let session = null;
+let recognition = null;
+let listening = false;
 
 function setStatus(msg) {
   document.getElementById('status').textContent = msg;
@@ -133,131 +95,90 @@ function addMessage(role, text) {
   box.scrollTop = box.scrollHeight;
 }
 
-async function startSession() {
+window.startSession = async function() {
   setStatus('Connecting to Pearl...');
   document.getElementById('start-btn').disabled = true;
 
   try {
     const res = await fetch('/api/session', { method: 'POST' });
     const data = await res.json();
+    console.log('Session response:', data);
 
-    if (!data.token && !data.sessionId) {
-      setStatus('Could not connect. Please try again.');
+    const token = data?.data?.session_token || data?.token || data?.session_token;
+    if (!token) {
+      setStatus('Could not get session token. Check console.');
       document.getElementById('start-btn').disabled = false;
       return;
     }
 
-    avatar = new LiveAvatar.StreamingAvatar({
-      token: data.token || data.access_token,
-    });
-
-    avatar.on('avatar_start_talking', () => setStatus('Pearl is speaking...'));
-    avatar.on('avatar_stop_talking', () => setStatus('Your turn — click Speak'));
-
     const container = document.getElementById('avatar-container');
     container.innerHTML = '';
-    await avatar.createStartAvatar({
-      avatarName: '513fd1b7-7ef9-466d-9af2-344e51eeb833',
-      quality: 'medium',
-      container: container,
+
+    session = new LiveAvatarSession(token, { voiceChat: false });
+
+    session.on('stream', (stream) => {
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.playsInline = true;
+      container.appendChild(video);
+      setStatus('Pearl is ready!');
+      document.getElementById('mic-btn').style.display = 'inline-block';
     });
 
-    setStatus('Pearl is ready!');
-    document.getElementById('mic-btn').style.display = 'inline-block';
+    await session.start();
 
-    // Pearl greets the user
-    await sendToPearl("Hello! Please greet the user warmly and introduce yourself as Pearl.");
-
-  } catch (e) {
-    console.error(e);
-    setStatus('Connection error: ' + e.message);
+  } catch(e) {
+    console.error('Session error:', e);
+    setStatus('Error: ' + e.message);
     document.getElementById('start-btn').disabled = false;
   }
 }
 
-async function sendToPearl(userText) {
+window.toggleMic = function() {
+  if (listening) {
+    recognition && recognition.stop();
+    listening = false;
+    document.getElementById('mic-btn').textContent = '🎤 Speak';
+    document.getElementById('mic-btn').classList.remove('listening');
+  } else {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.onresult = async (e) => {
+      const text = e.results[0][0].transcript;
+      addMessage('user', text);
+      setStatus('Pearl is thinking...');
+      await sendToClaude(text);
+    };
+    recognition.start();
+    listening = true;
+    document.getElementById('mic-btn').textContent = '⏹ Stop';
+    document.getElementById('mic-btn').classList.add('listening');
+    setStatus('Listening...');
+  }
+}
+
+async function sendToClaude(userText) {
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 200,
-        system: SYSTEM_PROMPT,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 150,
+        system: 'You are Pearl, a warm caring AI companion for adults over 60. Speak warmly and briefly — under 2 sentences.',
         messages: [{ role: 'user', content: userText }]
       })
     });
     const data = await res.json();
     const reply = data.content[0].text;
     addMessage('pearl', reply);
-    await avatar.speak({ text: reply, task_type: 'REPEAT' });
-  } catch (e) {
+    if (session) await session.speak(reply);
+    setStatus('Your turn — click Speak');
+  } catch(e) {
     console.error(e);
     setStatus('Error getting response.');
   }
-}
-
-async function toggleMic() {
-  if (listening) {
-    stopListening();
-  } else {
-    startListening();
-  }
-}
-
-async function startListening() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.onstop = transcribeAndSend;
-    mediaRecorder.start();
-    listening = true;
-    const btn = document.getElementById('mic-btn');
-    btn.textContent = '⏹ Stop';
-    btn.classList.add('listening');
-    setStatus('Listening...');
-  } catch (e) {
-    setStatus('Microphone access denied.');
-  }
-}
-
-function stopListening() {
-  if (mediaRecorder) mediaRecorder.stop();
-  listening = false;
-  const btn = document.getElementById('mic-btn');
-  btn.textContent = '🎤 Speak';
-  btn.classList.remove('listening');
-  setStatus('Processing...');
-}
-
-async function transcribeAndSend() {
-  const blob = new Blob(audioChunks, { type: 'audio/webm' });
-  const formData = new FormData();
-  formData.append('file', blob, 'audio.webm');
-  formData.append('model', 'whisper-1');
-
-  try {
-    // Use browser speech recognition as fallback
-    const text = await browserSpeechFallback();
-    if (text) {
-      addMessage('user', text);
-      await sendToPearl(text);
-    }
-  } catch (e) {
-    setStatus('Could not understand. Try again.');
-  }
-}
-
-function browserSpeechFallback() {
-  return new Promise((resolve, reject) => {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
-    recognition.onresult = e => resolve(e.results[0][0].transcript);
-    recognition.onerror = reject;
-    recognition.start();
-  });
 }
 </script>
 </body>
