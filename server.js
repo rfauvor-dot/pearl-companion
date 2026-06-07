@@ -22,11 +22,11 @@ app.post('/api/session', (req, res) => {
   });
   const options = {
     hostname: 'api.liveavatar.com',
-    path: '/v1/sessions',
+  path: '/v1/sessions/token',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${LIVEAVATAR_KEY}`,
+     'X-API-KEY': LIVEAVATAR_KEY,
       'Content-Length': Buffer.byteLength(body)
     }
   };
