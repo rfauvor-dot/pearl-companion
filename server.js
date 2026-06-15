@@ -5,6 +5,15 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
+// CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
 const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;
 const LIVEAVATAR_KEY = process.env.LIVEAVATAR_KEY;
 const AVATAR_ID = '513fd1b7-7ef9-466d-9af2-344e51eeb833';
@@ -33,84 +42,4 @@ app.post('/api/session', (req, res) => {
   request.end();
 });
 
-app.get('/api/history/:userId', async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/Conversations?user_id=eq.${userId}&order=created_at.asc`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const data = await response.json();
-    if (data && data.length > 0) {
-      const history = JSON.parse(data[data.length - 1].message_history);
-      res.json({ history });
-    } else {
-      res.json({ history: [] });
-    }
-  } catch (err) {
-    res.json({ history: [] });
-  }
-});
-
-// Upsert conversation history for a userId
-async function saveHistory(userId, updatedHistory) {
-  // Check if row exists
-  const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/Conversations?user_id=eq.${userId}`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  const existing = await checkRes.json();
-
-  if (existing && existing.length > 0) {
-    // Update existing row
-    await fetch(`${SUPABASE_URL}/rest/v1/Conversations?user_id=eq.${userId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({ message_history: JSON.stringify(updatedHistory) })
-    });
-  } else {
-    // Insert new row
-    await fetch(`${SUPABASE_URL}/rest/v1/Conversations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({ user_id: userId, message_history: JSON.stringify(updatedHistory) })
-    });
-  }
-}
-
-app.post('/api/chat', async (req, res) => {
-  // userId should be a unique string per user (e.g. generated in the client and stored in localStorage)
-  const { message, history = [], userId = 'default' } = req.body;
-  const messages = [...history, { role: 'user', content: message }];
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 1024,
-        system: 'You are Pearl, a warm and caring AI companion for adults 50 and older. You remember your conversations and build on them over time.',
-        messages
-      })
-    });
-    const data = await response.json();
-    const reply = data.content[0].text;
-    const updatedHistory = [...messages, { role: 'assistant', content: reply }];
-    await saveHistory(userId, updatedHistory);
-    res.json({ reply, history: updatedHistory });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.listen(3000, () => console.log('Pearl running on port 3000'));
+app.get('/api/hist
