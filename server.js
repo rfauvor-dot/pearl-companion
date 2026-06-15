@@ -51,7 +51,41 @@ app.get('/api/history/:userId', async (req, res) => {
   }
 });
 
+// Upsert conversation history for a userId
+async function saveHistory(userId, updatedHistory) {
+  // Check if row exists
+  const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/Conversations?user_id=eq.${userId}`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  const existing = await checkRes.json();
+
+  if (existing && existing.length > 0) {
+    // Update existing row
+    await fetch(`${SUPABASE_URL}/rest/v1/Conversations?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({ message_history: JSON.stringify(updatedHistory) })
+    });
+  } else {
+    // Insert new row
+    await fetch(`${SUPABASE_URL}/rest/v1/Conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({ user_id: userId, message_history: JSON.stringify(updatedHistory) })
+    });
+  }
+}
+
 app.post('/api/chat', async (req, res) => {
+  // userId should be a unique string per user (e.g. generated in the client and stored in localStorage)
   const { message, history = [], userId = 'default' } = req.body;
   const messages = [...history, { role: 'user', content: message }];
   try {
@@ -72,15 +106,7 @@ app.post('/api/chat', async (req, res) => {
     const data = await response.json();
     const reply = data.content[0].text;
     const updatedHistory = [...messages, { role: 'assistant', content: reply }];
-    await fetch(`${SUPABASE_URL}/rest/v1/Conversations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({ user_id: userId, message_history: JSON.stringify(updatedHistory) })
-    });
+    await saveHistory(userId, updatedHistory);
     res.json({ reply, history: updatedHistory });
   } catch (err) {
     res.status(500).json({ error: err.message });
