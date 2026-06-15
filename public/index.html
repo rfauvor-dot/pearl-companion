@@ -20,17 +20,81 @@
   .tagline { color: #7a6248; font-style: italic; margin-bottom: 24px; font-size: 1rem; }
   .avatar-wrapper {
     width: 100%;
-   max-width: 390px
+    max-width: 390px;
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(100,70,30,0.18);
   }
   .avatar-wrapper iframe {
     width: 100%;
-    aspect-ratio: 9/16
+    aspect-ratio: 9/16;
     border: none;
     display: block;
   }
+  .chat-section {
+    width: 100%;
+    max-width: 390px;
+    margin-top: 20px;
+  }
+  .chat-messages {
+    background: rgba(255,255,255,0.6);
+    border-radius: 16px;
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-width: 85%;
+  }
+  .msg.user {
+    background: #c8a882;
+    color: #2a1f14;
+    align-self: flex-end;
+  }
+  .msg.pearl {
+    background: #fff8f0;
+    color: #3a2e24;
+    align-self: flex-start;
+    border: 1px solid #e8d4c0;
+  }
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+  }
+  .chat-input-row input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 24px;
+    border: 1px solid #c8a882;
+    background: #fff8f0;
+    font-family: 'Georgia', serif;
+    font-size: 0.95rem;
+    color: #3a2e24;
+    outline: none;
+  }
+  .chat-input-row input:focus {
+    border-color: #a0785a;
+  }
+  .chat-input-row button {
+    padding: 12px 20px;
+    border-radius: 24px;
+    border: none;
+    background: #a0785a;
+    color: white;
+    font-family: 'Georgia', serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .chat-input-row button:hover { background: #7a5a3a; }
+  .chat-input-row button:disabled { background: #c8b8a8; cursor: not-allowed; }
   .footer {
     margin-top: 16px;
     color: #7a6248;
@@ -48,7 +112,31 @@
   <iframe src="https://embed.liveavatar.com/v1/e1b7931a-66fb-48d6-b9b7-31f3517a62fd?orientation=vertical" allow="microphone" title="LiveAvatar Embed" style="aspect-ratio: 9/16;"></iframe>
 </div>
 
+<div class="chat-section">
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg pearl">Hello! I'm Pearl. How are you feeling today?</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Type a message to Pearl..." />
+    <button id="sendBtn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
 <p class="footer">Pearl — Your personal AI companion</p>
 
-</body>
-</html>
+<script>
+  let userId = localStorage.getItem('pearl_user_id');
+  if (!userId) {
+    userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    localStorage.setItem('pearl_user_id', userId);
+  }
+
+  let history = [];
+
+  async function loadHistory() {
+    try {
+      const res = await fetch(`/api/history/${userId}`);
+      const data = await res.json();
+      if (data.history && data.history.length > 0) {
+        history = data.history;
+        const container =
